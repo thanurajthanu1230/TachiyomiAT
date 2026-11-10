@@ -1,0 +1,41 @@
+name: Build installable APK (preview)
+
+# Cloud build: GitHub Actions. No signing secrets needed.
+# The "preview" build type is signed with the debug key, so the APK installs
+# directly on any phone. Trigger manually from the Actions tab.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build preview APKs (debug-signed, installable)
+        run: ./gradlew assembleStandardPreview
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: TachiyomiAT-preview-apks
+          path: app/build/outputs/apk/standard/preview/*.apk
+          if-no-files-found: error
